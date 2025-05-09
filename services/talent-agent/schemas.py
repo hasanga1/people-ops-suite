@@ -489,7 +489,7 @@ candidate_schema = Object(
 
 candidate_skill_score_schema = Object(
     id="candidate_skill_score",
-    description="Evaluates how well a candidate's experience matches a specific skill",
+    description="Evaluates how well a candidate's suitable for a specific description.",
     attributes=[
         Number(
             id="experience_score",
@@ -515,13 +515,13 @@ candidate_skill_score_schema = Object(
     examples=[
         (
             """
-            Evaluate the candidate's proficiency in: Python
+            prompt: Candidate should have knowledge in python. Also candidate should have a computer Science degree
             
             Evaluation criteria:
-            1. Experience: Years and relevance of experience using this skill (0-10)
+            1. Experience: Years and relevance of experience using this prompt (0-10)
             2. Certifications: Relevant certifications and their recognition level (0-10)
-            3. Projects: Complexity and relevance of projects utilizing this skill (0-10)
-            4. Education: Relevant formal education related to this skill (0-10)
+            3. Projects: Complexity and relevance of projects utilizing this prompt (0-10)
+            4. Education: Relevant formal education related to this prompt (0-10)
             
             Candidate information:
             - Experience: [RELEVANT] Senior Developer at Tech Co (2020-2023): Led Python development team on cloud \
@@ -534,27 +534,27 @@ candidate_skill_score_schema = Object(
             """,
             [
                 {
-                    "experience_score": 9.0,
+                    "experience_score": 8.0,
                     "certification_score": 6.0,
-                    "project_score": 9.0,
-                    "education_score": 7.0,
+                    "project_score": 6.0,
+                    "education_score": 9.0,
                     "evaluation_text": "The candidate demonstrates strong Python skills through their experience leading \
                     a Python development team and building data pipelines using Python. Their projects show practical \
                         application of Python in complex ETL processes. While they lack Python-specific certifications,\
                               their CS degree and relevant coursework provide a solid foundation. Overall, this is a \
-                                strong Python candidate with professional leadership experience.",
+                                strong Python candidate with professional leadership experience. Candidate have Computer Science BS from State University (2019)",
                 }
             ],
         ),
         (
             """
-            Evaluate the candidate's proficiency in: Mobile Development
+            prompt: Evaluate the candidate's proficiency in: Mobile Development
             
             Evaluation criteria:
-            1. Experience: Years and relevance of experience using this skill (0-10)
+            1. Experience: Years and relevance of experience using this prompt (0-10)
             2. Certifications: Relevant certifications and their recognition level (0-10)
-            3. Projects: Complexity and relevance of projects utilizing this skill (0-10)
-            4. Education: Relevant formal education related to this skill (0-10)
+            3. Projects: Complexity and relevance of projects utilizing this prompt (0-10)
+            4. Education: Relevant formal education related to this prompt (0-10)
             
             Candidate information:
             - Experience: Senior Developer at Tech Co (2020-2023): Led Python development team on cloud infrastructure\

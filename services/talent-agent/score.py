@@ -82,82 +82,78 @@ def analyze_github_project(repo_url):
 
 def evaluate_candidate(
     candidate,
-    skills,
+    prompt,
     experience_weight=0.4,
-    certification_weight=0.2,
-    project_weight=0.4,
+    certification_weight=0.1,
+    project_weight=0.2,
+    education_weight=0.3,
 ):
     """
     Evaluates a candidate based on a set of skills using a weighted scoring system.
 
     Args:
         candidate: Dictionary containing candidate information
-        skills: List of skills to evaluate
+        prompt: The prompt to evaluate the candidate against
         experience_weight: Weight for experience score (default: 0.4)
         certification_weight: Weight for certification score (default: 0.2)
         project_weight: Weight for project score (default: 0.4)
 
     Returns:
-        List of float scores for each skill (0.0-10.0 scale)
+        List of float scores for the prompt (0.0-10.0 scale)
     """
     results = []
 
     experience = candidate.get("experiences", [])
     certifications = candidate.get("certifications", [])
     projects = candidate.get("projects", [])
-    education = candidate.get("education", [])
+    education = candidate.get("educations", [])
 
-    for skill in skills:
-        exp_text = format_experience(experience, skill)
-        cert_text = format_certifications(certifications, skill)
-        project_text = format_projects(projects, skill)
-        edu_text = format_education(education, skill)
+    exp_text = format_experience(experience)
+    cert_text = format_certifications(certifications)
+    project_text = format_projects(projects)
+    edu_text = format_education(education)
+    input_text = f"""
+    prompt: {prompt}
+    
+    Evaluation criteria:
+    1. Experience: Years and relevance of experience using this prompt (0-10)
+    2. Certifications: Relevant certifications and their recognition level (0-10)
+    3. Projects: Complexity and relevance of projects utilizing this prompt (0-10)
+    4. Education: Relevant formal education related to this prompt (0-10)
+    
+    Candidate information:
+    - Experience: {exp_text}
+    - Certifications: {cert_text}
+    - Projects: {project_text}
+    - Education: {edu_text}
+    
+    Please provide detailed scores for each criterion and a final weighted score.
+    """
 
-        input_text = f"""
-        Evaluate the candidate's proficiency in: {skill}
-        
-        Evaluation criteria:
-        1. Experience: Years and relevance of experience using this skill (0-10)
-        2. Certifications: Relevant certifications and their recognition level (0-10)
-        3. Projects: Complexity and relevance of projects utilizing this skill (0-10)
-        4. Education: Relevant formal education related to this skill (0-10)
-        
-        Candidate information:
-        - Experience: {exp_text}
-        - Certifications: {cert_text}
-        - Projects: {project_text}
-        - Education: {edu_text}
-        
-        Please provide detailed scores for each criterion and a final weighted score.
-        """
+    evaluation = chain.invoke(input_text)["data"]["candidate_skill_score"][0]
 
-        evaluation = chain.invoke(input_text)["data"]["candidate_skill_score"][0]
+    experience_score = float(evaluation.get("experience_score", 0.0))
+    certification_score = float(evaluation.get("certification_score", 0.0))
+    project_score = float(evaluation.get("project_score", 0.0))
+    education_score = float(evaluation.get("education_score", 0.0))
 
-        experience_score = float(evaluation.get("experience_score", 0.0))
-        certification_score = float(evaluation.get("certification_score", 0.0))
-        project_score = float(evaluation.get("project_score", 0.0))
-        education_score = float(evaluation.get("education_score", 0.0))
-
-        weighted_score = (
-            experience_score * experience_weight
-            + certification_score * certification_weight
-            + project_score * project_weight
-        )
-
-        normalized_score = min(10.0, max(0.0, weighted_score))
-
-        skill_result = {
-            "skill": skill,
-            "similarityScore": round(normalized_score, 2),
-            "supportingPoints": evaluation.get("evaluation_text", ""),
-        }
-
-        results.append(skill_result)
+    weighted_score = (
+        experience_score * experience_weight
+        + certification_score * certification_weight
+        + project_score * project_weight
+        + education_score * education_weight
+    )
+    normalized_score = min(10.0, max(0.0, weighted_score))
+    skill_result = {
+        "similarityScore": round(normalized_score, 2),
+        "supportingPoints": evaluation.get("evaluation_text", ""),
+    }
+    results.append(skill_result)
 
     return results
 
 
-def format_experience(experience, skill):
+def format_experience(experience):
     """Format experience entries, highlighting those relevant to the skill"""
     if not experience:
         return "None"
@@ -174,7 +170,7 @@ def format_experience(experience, skill):
     return "\n".join(relevant_exp)
 
 
-def format_certifications(certifications, skill):
+def format_certifications(certifications):
     """Format certifications, highlighting those relevant to the skill"""
     if not certifications:
         return "None"
@@ -184,18 +180,14 @@ def format_certifications(certifications, skill):
         name = cert.get("name", "")
         issuer = cert.get("issued_by", "")
 
-        skill_mentioned = skill.lower() in name.lower()
-
         cert_text = f"{name} from {issuer}"
-        if skill_mentioned:
-            cert_text = f"[RELEVANT] {cert_text}"
 
         cert_list.append(cert_text)
 
     return "\n".join(cert_list)
 
 
-def format_projects(projects, skill):
+def format_projects(projects):
     """Format projects, highlighting those relevant to the skill"""
     if not projects:
         return "None"
@@ -207,15 +199,8 @@ def format_projects(projects, skill):
         tech_stack = project.get("technologies", [])
         github_link = project.get("github", "")
 
-        skill_mentioned = (
-            skill.lower() in description.lower()
-            or skill.lower() in " ".join(tech_stack).lower()
-        )
-
         tech_text = ", ".join(tech_stack) if tech_stack else "Not specified"
         project_text = f"{name}: {description} (Technologies: {tech_text})"
-        if skill_mentioned:
-            project_text = f"[RELEVANT] {project_text}"
 
         if github_link:
             project_text += f" [GitHub Info About the project: {analyze_github_project(github_link)}]"
@@ -225,7 +210,7 @@ def format_projects(projects, skill):
     return "\n".join(project_list)
 
 
-def format_education(education, skill):
+def format_education(education):
     """Format education entries, highlighting those relevant to the skill"""
     if not education:
         return "None"
@@ -236,13 +221,9 @@ def format_education(education, skill):
         institution = edu.get("institution", "")
         gpa = edu.get("gpa_zscore", "")
 
-        skill_mentioned = skill.lower() in degree.lower()
-
         edu_text = (
             f"{degree} from {institution}. GPA(out of 4 or 4.2) or Z_score: {gpa}"
         )
-        if skill_mentioned:
-            edu_text = f"[RELEVANT] {edu_text}"
 
         edu_list.append(edu_text)
 

@@ -5,21 +5,19 @@ from pdf_utils import extract_text
 from llm_utils import llm
 from schemas import candidate_schema
 from validation import format_candidate_data
-import shutil
 import os
 
 app = FastAPI()
 
 @app.post("/resumes/parse")
-async def extract_resume(request: Request):
-    data: bytes = await request.body()
-
+async def extract_resume(file: UploadFile = File(...)):
     os.makedirs("temp", exist_ok=True)
     file_location = "temp/temp_resume.pdf"
 
     try:
         with open(file_location, "wb") as f:
-            f.write(data)
+            content = await file.read()
+            f.write(content)
 
         resume_content = extract_text(file_location)
         chain = create_extraction_chain(
@@ -33,7 +31,6 @@ async def extract_resume(request: Request):
     finally:
         if os.path.exists(file_location):
             os.remove(file_location)
-
     return {"structuredObject": structured_object}
 
 @app.post("/resumes/similarity")
@@ -50,7 +47,7 @@ async def get_scores(request: Request):
             raise HTTPException(status_code=400, detail=f"JSON parsing error: {str(e)}")
             
         structured_object = data["structuredObject"]
-        required_skills = data["requiredSkills"]
+        required_skills = data["prompt"]
         results = evaluate_candidate(structured_object, required_skills)
         return results
     except Exception as e:
